@@ -106,7 +106,12 @@ func (c *Client) SignatureForPathAndParams(path string, params url.Values) strin
 
 	hasher := md5.New()
 	hasher.Write([]byte(c.token + path))
-	hasher.Write([]byte("?" + params.Encode()))
+
+	// Do not mix in the parameters into the signature hash if no parameters
+	// have been given
+	if len(params) != 0 {
+		hasher.Write([]byte("?" + params.Encode()))
+	}
 
 	return "s=" + hex.EncodeToString(hasher.Sum(nil))
 }
@@ -125,11 +130,13 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 	}
 
 	signature := c.SignatureForPathAndParams(imgPath, params)
-	if signature != "" {
-		return u.String() + "&" + signature
-	} else {
-		return u.String()
+	if signature != "" && len(params) > 0 {
+		u.RawQuery = u.RawQuery + "&" + signature
+	} else if signature != "" && len(params) == 0 {
+		u.RawQuery = signature
 	}
+
+	return u.String()
 }
 
 func (c *Client) crc32BasedIndexForPath(path string) int {
