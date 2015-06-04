@@ -19,6 +19,7 @@ const (
 )
 
 var RegexpRemoveHTTPAndS = regexp.MustCompile("https?://")
+var RegexUrlCharactersToEscape = regexp.MustCompile("([^ a-zA-Z0-9_.-])")
 
 func NewClient(hosts ...string) Client {
 	return Client{hosts: hosts, secure: true}
@@ -177,8 +178,7 @@ func (c *Client) crc32BasedIndexForPath(path string) int {
 //  - https://github.com/parkr/imgix-go/pull/1#issuecomment-109014369
 //  - https://github.com/imgix/imgix-blueprint#securing-urls
 func cgiEscape(s string) string {
-	urlCharactersToEscape := regexp.MustCompile("([^ a-zA-Z0-9_.-])")
-	return urlCharactersToEscape.ReplaceAllStringFunc(s, func(s string) string {
+	return RegexUrlCharactersToEscape.ReplaceAllStringFunc(s, func(s string) string {
 		rune, _ := utf8.DecodeLastRuneInString(s)
 		return "%" + strings.ToUpper(fmt.Sprintf("%x", rune))
 	})
