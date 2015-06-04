@@ -52,6 +52,12 @@ func TestClientPathWithSignatureAndParams(t *testing.T) {
 	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?h=300&w=400&s=1a4e48641614d1109c6a7af51be23d18", c.PathWithParams("/users/1.png", params))
 }
 
+func TestClientPathWithSignatureAndEmptyParams(t *testing.T) {
+	c := testClientWithToken()
+	params := url.Values{}
+	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?s=6797c24146142d5b40bde3141fd3600c", c.PathWithParams("/users/1.png", params))
+}
+
 func TestClientFullyQualifiedUrlPath(t *testing.T) {
 	c := testClientWithToken()
 	assert.Equal(t, "https://my-social-network.imgix.net/http%3A%2F%2Favatars.com%2Fjohn-smith.png?s=493a52f008c91416351f8b33d4883135", c.Path("http://avatars.com/john-smith.png"))
