@@ -1,6 +1,8 @@
 package imgix
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"hash/crc32"
 	"net/url"
@@ -18,6 +20,10 @@ var RegexpRemoveHTTPAndS = regexp.MustCompile("http(s)://")
 
 func NewClient(hosts ...string) Client {
 	return Client{hosts: hosts, secure: true}
+}
+
+func NewClientWithToken(host string, token string) Client {
+	return Client{hosts: []string{host}, secure: true, token: token}
 }
 
 type Client struct {
@@ -76,10 +82,33 @@ func (c *Client) Host(path string) string {
 
 func (c *Client) URL(imgPath string) url.URL {
 	return url.URL{
-		Scheme: c.Scheme(),
-		Host:   c.Host(imgPath),
-		Path:   imgPath,
+		Scheme:   c.Scheme(),
+		Host:     c.Host(imgPath),
+		Path:     imgPath,
+		RawQuery: c.SignatureForPath(imgPath),
 	}
+}
+
+func (c *Client) SignatureForPath(path string) string {
+	if c.token == "" {
+		return ""
+	}
+
+	hasher := md5.New()
+	hasher.Write([]byte(c.token + path))
+	return "s=" + hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (c *Client) SignatureForPathAndParams(path string, params url.Values) string {
+	if c.token == "" {
+		return ""
+	}
+
+	hasher := md5.New()
+	hasher.Write([]byte(c.token + path))
+	hasher.Write([]byte("?" + params.Encode()))
+
+	return "s=" + hex.EncodeToString(hasher.Sum(nil))
 }
 
 func (c *Client) Path(imgPath string) string {
@@ -88,16 +117,22 @@ func (c *Client) Path(imgPath string) string {
 }
 
 func (c *Client) PathWithParams(imgPath string, params url.Values) string {
-	u := c.URL(imgPath)
-	u.RawQuery = pluckSupportedParams(params).Encode()
-	return u.String()
+	u := url.URL{
+		Scheme:   c.Scheme(),
+		Host:     c.Host(imgPath),
+		Path:     imgPath,
+		RawQuery: params.Encode(),
+	}
+
+	signature := c.SignatureForPathAndParams(imgPath, params)
+	if signature != "" {
+		return u.String() + "&" + signature
+	} else {
+		return u.String()
+	}
 }
 
 func (c *Client) crc32BasedIndexForPath(path string) int {
 	crc := crc32.ChecksumIEEE([]byte(path))
 	return int(crc) % len(c.hosts)
-}
-
-func pluckSupportedParams(params url.Values) url.Values {
-	return params
 }
