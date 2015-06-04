@@ -80,23 +80,8 @@ func (c *Client) Host(path string) string {
 	return RegexpRemoveHTTPAndS.ReplaceAllString(host, "")
 }
 
-func (c *Client) URL(imgPath string) url.URL {
-	return url.URL{
-		Scheme:   c.Scheme(),
-		Host:     c.Host(imgPath),
-		Path:     imgPath,
-		RawQuery: c.SignatureForPath(imgPath),
-	}
-}
-
 func (c *Client) SignatureForPath(path string) string {
-	if c.token == "" {
-		return ""
-	}
-
-	hasher := md5.New()
-	hasher.Write([]byte(c.token + path))
-	return "s=" + hex.EncodeToString(hasher.Sum(nil))
+	return c.SignatureForPathAndParams(path, url.Values{})
 }
 
 func (c *Client) SignatureForPathAndParams(path string, params url.Values) string {
@@ -117,8 +102,7 @@ func (c *Client) SignatureForPathAndParams(path string, params url.Values) strin
 }
 
 func (c *Client) Path(imgPath string) string {
-	url := c.URL(imgPath)
-	return url.String()
+	return c.PathWithParams(imgPath, url.Values{})
 }
 
 func (c *Client) PathWithParams(imgPath string, params url.Values) string {

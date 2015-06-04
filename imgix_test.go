@@ -36,14 +36,14 @@ func TestClientScheme(t *testing.T) {
 
 func TestClientURL(t *testing.T) {
 	c := testClient()
-	u := c.URL("/jax.jpg")
-	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u.String())
+	u := c.Path("/jax.jpg")
+	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u)
 }
 
 func TestClientPathWithSignature(t *testing.T) {
 	c := testClientWithToken()
-	u := c.URL("/users/1.png")
-	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?s=6797c24146142d5b40bde3141fd3600c", u.String())
+	u := c.Path("/users/1.png")
+	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?s=6797c24146142d5b40bde3141fd3600c", u)
 }
 
 func TestClientPathWithSignatureAndParams(t *testing.T) {
