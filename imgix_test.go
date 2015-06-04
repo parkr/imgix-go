@@ -34,7 +34,7 @@ func TestClientScheme(t *testing.T) {
 	assert.Equal(t, "https", c.Scheme())
 }
 
-func TestClientURL(t *testing.T) {
+func TestClientPath(t *testing.T) {
 	c := testClient()
 	u := c.Path("/jax.jpg")
 	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u)

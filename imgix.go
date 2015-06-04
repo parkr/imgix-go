@@ -113,6 +113,9 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 		RawQuery: params.Encode(),
 	}
 
+	// The signature in an imgix URL must always be the **last** parameter in a URL,
+	// hence some of the gross string concatenation here. net/url will aggressively
+	// alphabetize the URL parameters.
 	signature := c.SignatureForPathAndParams(imgPath, params)
 	if signature != "" && len(params) > 0 {
 		u.RawQuery = u.RawQuery + "&" + signature
