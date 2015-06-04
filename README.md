@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-    client := imgix.NewClient([]string{"mycompany.imgix.net"}, true)
+    client := imgix.NewClient("mycompany.imgix.net")
 
     // Nothing fancy.
     fmt.Println(client.Path("/myImage.jpg"))

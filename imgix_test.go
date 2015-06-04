@@ -8,10 +8,7 @@ import (
 )
 
 func testClient() Client {
-	return NewClient(
-		[]string{"prod.imgix.net", "stag.imgix.net", "dev.imgix.net"},
-		true,
-	)
+	return NewClient("prod.imgix.net", "stag.imgix.net", "dev.imgix.net")
 }
 
 func TestBasicClientPath(t *testing.T) {

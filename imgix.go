@@ -3,7 +3,6 @@ package imgix
 import (
 	"fmt"
 	"hash/crc32"
-	//"log"
 	"net/url"
 	"regexp"
 )
@@ -15,15 +14,10 @@ const (
 	ShardStrategyCycle = ShardStrategy(":cycle")
 )
 
-var (
-	RegexpRemoveHTTPAndS = regexp.MustCompile("http(s)://")
-)
+var RegexpRemoveHTTPAndS = regexp.MustCompile("http(s)://")
 
-func NewClient(hosts []string, secure bool) Client {
-	return Client{
-		hosts:  hosts,
-		secure: secure,
-	}
+func NewClient(hosts ...string) Client {
+	return Client{hosts: hosts, secure: true}
 }
 
 type Client struct {
