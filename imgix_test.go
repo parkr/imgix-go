@@ -11,6 +11,10 @@ func testClient() Client {
 	return NewClient("prod.imgix.net", "stag.imgix.net", "dev.imgix.net")
 }
 
+func testClientWithToken() Client {
+	return NewClientWithToken("my-social-network.imgix.net", "FOO123bar")
+}
+
 func TestBasicClientPath(t *testing.T) {
 	c := testClient()
 	assert.Equal(t, "https://prod.imgix.net/1/users.jpg", c.Path("/1/users.jpg"))
@@ -30,10 +34,39 @@ func TestClientScheme(t *testing.T) {
 	assert.Equal(t, "https", c.Scheme())
 }
 
-func TestClientURL(t *testing.T) {
+func TestClientPath(t *testing.T) {
 	c := testClient()
-	u := c.URL("/jax.jpg")
-	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u.String())
+	u := c.Path("/jax.jpg")
+	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u)
+}
+
+func TestClientPathWithSignature(t *testing.T) {
+	c := testClientWithToken()
+	u := c.Path("/users/1.png")
+	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?s=6797c24146142d5b40bde3141fd3600c", u)
+}
+
+func TestClientPathWithSignatureAndParams(t *testing.T) {
+	c := testClientWithToken()
+	params := url.Values{"w": []string{"400"}, "h": []string{"300"}}
+	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?h=300&w=400&s=1a4e48641614d1109c6a7af51be23d18", c.PathWithParams("/users/1.png", params))
+}
+
+func TestClientPathWithSignatureAndEmptyParams(t *testing.T) {
+	c := testClientWithToken()
+	params := url.Values{}
+	assert.Equal(t, "https://my-social-network.imgix.net/users/1.png?s=6797c24146142d5b40bde3141fd3600c", c.PathWithParams("/users/1.png", params))
+}
+
+func TestClientFullyQualifiedUrlPath(t *testing.T) {
+	c := testClientWithToken()
+	assert.Equal(t, "https://my-social-network.imgix.net/http%3A%2F%2Favatars.com%2Fjohn-smith.png?s=493a52f008c91416351f8b33d4883135", c.Path("http://avatars.com/john-smith.png"))
+}
+
+func TestClientFullyQualifiedUrlPathWithParams(t *testing.T) {
+	c := testClientWithToken()
+	params := url.Values{"w": []string{"400"}, "h": []string{"300"}}
+	assert.Equal(t, "https://my-social-network.imgix.net/http%3A%2F%2Favatars.com%2Fjohn-smith.png?h=300&w=400&s=a201fe1a3caef4944dcb40f6ce99e746", c.PathWithParams("http://avatars.com/john-smith.png", params))
 }
 
 func TestClientFallbackShardStrategy(t *testing.T) {
