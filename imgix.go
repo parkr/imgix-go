@@ -7,6 +7,8 @@ import (
 	"hash/crc32"
 	"net/url"
 	"regexp"
+	"strings"
+	"unicode/utf8"
 )
 
 type ShardStrategy string
@@ -16,7 +18,7 @@ const (
 	ShardStrategyCycle = ShardStrategy(":cycle")
 )
 
-var RegexpRemoveHTTPAndS = regexp.MustCompile("http(s)://")
+var RegexpRemoveHTTPAndS = regexp.MustCompile("https?://")
 
 func NewClient(hosts ...string) Client {
 	return Client{hosts: hosts, secure: true}
@@ -105,28 +107,79 @@ func (c *Client) Path(imgPath string) string {
 	return c.PathWithParams(imgPath, url.Values{})
 }
 
+// `PathWithParams` will manually build a URL from a given path string and
+// parameters passed in. Because of the differences in how net/url escapes
+// path components, we need to manually build a URL as best we can.
+//
+// The behavior of this function is highly dependent upon its test suite.
 func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 	u := url.URL{
-		Scheme:   c.Scheme(),
-		Host:     c.Host(imgPath),
-		Path:     imgPath,
-		RawQuery: params.Encode(),
+		Scheme: c.Scheme(),
+		Host:   c.Host(imgPath),
 	}
+
+	urlString := u.String()
+
+	// If we are given a fully-qualified URL, escape it per the note located
+	// near the `cgiEscape` function definition
+	if RegexpRemoveHTTPAndS.MatchString(imgPath) {
+		imgPath = cgiEscape(imgPath)
+	}
+
+	// Add a preceding slash if one does not exist:
+	//     "users/1.png" -> "/users/1.png"
+	if strings.Index(imgPath, "/") != 0 {
+		imgPath = "/" + imgPath
+	}
+
+	urlString += imgPath
 
 	// The signature in an imgix URL must always be the **last** parameter in a URL,
 	// hence some of the gross string concatenation here. net/url will aggressively
 	// alphabetize the URL parameters.
 	signature := c.SignatureForPathAndParams(imgPath, params)
+	parameterString := params.Encode()
 	if signature != "" && len(params) > 0 {
-		u.RawQuery = u.RawQuery + "&" + signature
+		parameterString += "&" + signature
 	} else if signature != "" && len(params) == 0 {
-		u.RawQuery = signature
+		parameterString = signature
 	}
 
-	return u.String()
+	// Only append the parameter string if it is not blank.
+	if parameterString != "" {
+		urlString += "?" + parameterString
+	}
+
+	return urlString
 }
 
 func (c *Client) crc32BasedIndexForPath(path string) int {
 	crc := crc32.ChecksumIEEE([]byte(path))
 	return int(crc) % len(c.hosts)
+}
+
+// This code is less than ideal, but it's the only way we've found out how to do it
+// give Go's URL capabilities and escaping behavior.
+//
+// This method replicates the beavhior of Ruby's CGI::escape in Go.
+//
+// Here is that method:
+//
+//     def CGI::escape(string)
+//       string.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+//         '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+//       end.tr(' ', '+')
+//      end
+//
+// It replaces
+//
+// See:
+//  - https://github.com/parkr/imgix-go/pull/1#issuecomment-109014369
+//  - https://github.com/imgix/imgix-blueprint#securing-urls
+func cgiEscape(s string) string {
+	urlCharactersToEscape := regexp.MustCompile("([^ a-zA-Z0-9_.-])")
+	return urlCharactersToEscape.ReplaceAllStringFunc(s, func(s string) string {
+		rune, _ := utf8.DecodeLastRuneInString(s)
+		return "%" + strings.ToUpper(fmt.Sprintf("%x", rune))
+	})
 }
