@@ -18,7 +18,7 @@ const (
 	ShardStrategyCycle = ShardStrategy(":cycle")
 )
 
-var RegexpRemoveHTTPAndS = regexp.MustCompile("https?://")
+var RegexpHTTPAndS = regexp.MustCompile("https?://")
 var RegexUrlCharactersToEscape = regexp.MustCompile("([^ a-zA-Z0-9_.-])")
 
 func NewClient(hosts ...string) Client {
@@ -80,7 +80,7 @@ func (c *Client) Host(path string) string {
 		c.cycleIndex = (c.cycleIndex + 1) % len(c.hosts)
 	}
 
-	return RegexpRemoveHTTPAndS.ReplaceAllString(host, "")
+	return RegexpHTTPAndS.ReplaceAllString(host, "")
 }
 
 func (c *Client) SignatureForPath(path string) string {
@@ -123,7 +123,7 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 
 	// If we are given a fully-qualified URL, escape it per the note located
 	// near the `cgiEscape` function definition
-	if RegexpRemoveHTTPAndS.MatchString(imgPath) {
+	if RegexpHTTPAndS.MatchString(imgPath) {
 		imgPath = cgiEscape(imgPath)
 	}
 
