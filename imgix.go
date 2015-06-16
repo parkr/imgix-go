@@ -18,17 +18,23 @@ const (
 	ShardStrategyCycle = ShardStrategy(":cycle")
 )
 
+// Matches http:// and https://
 var RegexpHTTPAndS = regexp.MustCompile("https?://")
+
+// Regexp for all characters we should escape in a URI passed in.
 var RegexUrlCharactersToEscape = regexp.MustCompile("([^ a-zA-Z0-9_.-])")
 
+// Create a new Client with the given hosts, with HTTPS enabled.
 func NewClient(hosts ...string) Client {
 	return Client{hosts: hosts, secure: true}
 }
 
+// Create a new Client with the given host and token. HTTPS enabled.
 func NewClientWithToken(host string, token string) Client {
 	return Client{hosts: []string{host}, secure: true, token: token}
 }
 
+// The Client is used to build URLs.
 type Client struct {
 	hosts         []string
 	token         string
@@ -39,6 +45,8 @@ type Client struct {
 	cycleIndex int
 }
 
+// The sharding strategy used by this client.
+// Panics if the sharding strategy is not supported by this library.
 func (c *Client) ShardStrategy() ShardStrategy {
 	switch c.shardStrategy {
 	case ShardStrategyCRC, ShardStrategyCycle:
@@ -51,10 +59,13 @@ func (c *Client) ShardStrategy() ShardStrategy {
 	}
 }
 
+// Returns whether HTTPS should be used.
 func (c *Client) Secure() bool {
 	return c.secure
 }
 
+// Returns a host at the given index.
+// Panics if there are no hosts.
 func (c *Client) Hosts(index int) string {
 	if len(c.hosts) == 0 {
 		panic(fmt.Errorf("hosts must be provided"))
@@ -62,6 +73,7 @@ func (c *Client) Hosts(index int) string {
 	return c.hosts[index]
 }
 
+// Returns the URL scheme to use. One of 'http' or 'https'.
 func (c *Client) Scheme() string {
 	if c.Secure() {
 		return "https"
@@ -70,6 +82,7 @@ func (c *Client) Scheme() string {
 	}
 }
 
+// Returns the host for the given path.
 func (c *Client) Host(path string) string {
 	var host string
 	switch c.ShardStrategy() {
@@ -83,10 +96,14 @@ func (c *Client) Host(path string) string {
 	return RegexpHTTPAndS.ReplaceAllString(host, "")
 }
 
+// Creates and returns the URL signature in the form of "s=SIGNATURE" with
+// no values.
 func (c *Client) SignatureForPath(path string) string {
 	return c.SignatureForPathAndParams(path, url.Values{})
 }
 
+// Creates and returns the URL signature in the form of "s=SIGNATURE" for
+// the given parameters. Requires that the client have a token.
 func (c *Client) SignatureForPathAndParams(path string, params url.Values) string {
 	if c.token == "" {
 		return ""
@@ -104,6 +121,7 @@ func (c *Client) SignatureForPathAndParams(path string, params url.Values) strin
 	return "s=" + hex.EncodeToString(hasher.Sum(nil))
 }
 
+// Builds the full URL to the image (including the host) with no params.
 func (c *Client) Path(imgPath string) string {
 	return c.PathWithParams(imgPath, url.Values{})
 }
