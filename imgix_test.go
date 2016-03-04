@@ -40,6 +40,41 @@ func TestClientPath(t *testing.T) {
 	assert.Equal(t, "https://prod.imgix.net/jax.jpg", u)
 }
 
+func TestClientPathWithOneParam(t *testing.T) {
+	c := testClient()
+	params := url.Values{"w": []string{"400"}}
+	u := c.PathWithParams("/jax.jpg", params)
+	assert.Equal(t, "https://prod.imgix.net/jax.jpg?w=400", u)
+}
+
+func TestClientPathWithTwoParams(t *testing.T) {
+	c := testClient()
+	params := url.Values{"w": []string{"400"}, "h": []string{"300"}}
+	u := c.PathWithParams("/jax.jpg", params)
+	assert.Equal(t, "https://prod.imgix.net/jax.jpg?h=300&w=400", u)
+}
+
+func TestClientPathWithParamsEncodesParamKeys(t *testing.T) {
+	c := testClient()
+	params := url.Values{"hello world": []string{"interesting"}}
+	u := c.PathWithParams("/demo.png", params)
+	assert.Equal(t, "https://prod.imgix.net/demo.png?hello%%20world=interesting", u)
+}
+
+func TestClientPathWithParamsEncodesParamValues(t *testing.T) {
+	c := testClient()
+	params := url.Values{"hello_world": []string{"/foo\"> <script>alert(\"hacked\")</script><"}}
+	u := c.PathWithParams("/demo.png", params)
+	assert.Equal(t, "https://prod.imgix.net/demo.png?hello_world=%2Ffoo%22%3E%%20%3Cscript%3Ealert%28%22hacked%22%29%3C%2Fscript%3E%3C", u)
+}
+
+func TestClientPathWithParamsEncodesBase64ParamVariants(t *testing.T) {
+	c := testClient()
+	params := url.Values{"txt64": []string{"I cannøt belîév∑ it wors! 😱"}}
+	u := c.PathWithParams("~text", params)
+	assert.Equal(t, "https://prod.imgix.net/~text?txt64=SSBjYW5uw7h0IGJlbMOuw6l24oiRIGl0IHdvcu-jv3MhIPCfmLE", u)
+}
+
 func TestClientPathWithSignature(t *testing.T) {
 	c := testClientWithToken()
 	u := c.Path("/users/1.png")

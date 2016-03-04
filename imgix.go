@@ -145,7 +145,7 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 		imgPath = cgiEscape(imgPath)
 	}
 
-	// Add a preceding slash if one does not exist:
+	// Add a leading slash if one does not exist:
 	//     "users/1.png" -> "/users/1.png"
 	if strings.Index(imgPath, "/") != 0 {
 		imgPath = "/" + imgPath
@@ -158,6 +158,8 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 	// alphabetize the URL parameters.
 	signature := c.SignatureForPathAndParams(imgPath, params)
 	parameterString := params.Encode()
+	parameterString = strings.Replace(parameterString, "+", "%%20", -1)
+
 	if signature != "" && len(params) > 0 {
 		parameterString += "&" + signature
 	} else if signature != "" && len(params) == 0 {
