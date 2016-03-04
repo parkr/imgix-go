@@ -2,6 +2,7 @@ package imgix
 
 import (
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
@@ -152,6 +153,15 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 	}
 
 	urlString += imgPath
+
+	for key, val := range params {
+		if strings.HasSuffix(key, "64") {
+			valData := []byte(val[0])
+			base64EncodedVal := base64.URLEncoding.EncodeToString(valData)
+			base64EncodedVal = strings.Replace(base64EncodedVal, "=", "", -1)
+			params.Set(key, base64EncodedVal)
+		}
+	}
 
 	// The signature in an imgix URL must always be the **last** parameter in a URL,
 	// hence some of the gross string concatenation here. net/url will aggressively
