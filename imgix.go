@@ -2,6 +2,7 @@ package imgix
 
 import (
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
@@ -145,7 +146,7 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 		imgPath = cgiEscape(imgPath)
 	}
 
-	// Add a preceding slash if one does not exist:
+	// Add a leading slash if one does not exist:
 	//     "users/1.png" -> "/users/1.png"
 	if strings.Index(imgPath, "/") != 0 {
 		imgPath = "/" + imgPath
@@ -153,11 +154,20 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 
 	urlString += imgPath
 
+	for key, val := range params {
+		if strings.HasSuffix(key, "64") {
+			encodedParam := base64EncodeParameter(val[0])
+			params.Set(key, encodedParam)
+		}
+	}
+
 	// The signature in an imgix URL must always be the **last** parameter in a URL,
 	// hence some of the gross string concatenation here. net/url will aggressively
 	// alphabetize the URL parameters.
 	signature := c.SignatureForPathAndParams(imgPath, params)
 	parameterString := params.Encode()
+	parameterString = strings.Replace(parameterString, "+", "%%20", -1)
+
 	if signature != "" && len(params) > 0 {
 		parameterString += "&" + signature
 	} else if signature != "" && len(params) == 0 {
@@ -175,6 +185,16 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 func (c *Client) crc32BasedIndexForPath(path string) int {
 	crc := crc32.ChecksumIEEE([]byte(path))
 	return int(crc) % len(c.hosts)
+}
+
+// Base64-encodes a parameter according to imgix's Base64 variant requirements.
+// https://docs.imgix.com/apis/url#base64-variants
+func base64EncodeParameter(param string) string {
+	paramData := []byte(param)
+	base64EncodedParam := base64.URLEncoding.EncodeToString(paramData)
+	base64EncodedParam = strings.Replace(base64EncodedParam, "=", "", -1)
+
+	return base64EncodedParam
 }
 
 // This code is less than ideal, but it's the only way we've found out how to do it
