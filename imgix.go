@@ -156,10 +156,8 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 
 	for key, val := range params {
 		if strings.HasSuffix(key, "64") {
-			valData := []byte(val[0])
-			base64EncodedVal := base64.URLEncoding.EncodeToString(valData)
-			base64EncodedVal = strings.Replace(base64EncodedVal, "=", "", -1)
-			params.Set(key, base64EncodedVal)
+			encodedParam := base64EncodeParameter(val[0])
+			params.Set(key, encodedParam)
 		}
 	}
 
@@ -187,6 +185,16 @@ func (c *Client) PathWithParams(imgPath string, params url.Values) string {
 func (c *Client) crc32BasedIndexForPath(path string) int {
 	crc := crc32.ChecksumIEEE([]byte(path))
 	return int(crc) % len(c.hosts)
+}
+
+// Base64-encodes a parameter according to imgix's Base64 variant requirements.
+// https://docs.imgix.com/apis/url#base64-variants
+func base64EncodeParameter(param string) string {
+	paramData := []byte(param)
+	base64EncodedParam := base64.URLEncoding.EncodeToString(paramData)
+	base64EncodedParam = strings.Replace(base64EncodedParam, "=", "", -1)
+
+	return base64EncodedParam
 }
 
 // This code is less than ideal, but it's the only way we've found out how to do it
