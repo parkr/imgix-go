@@ -83,3 +83,8 @@ client.Host("/1/wedding.jpg") // => uses 2.imgix.net... and so on.
 ```
 
 The default sharding is **Cycle**.
+
+## License
+
+MIT. See [LICENSE](LICENSE) for details.
+
