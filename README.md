@@ -87,4 +87,3 @@ The default sharding is **Cycle**.
 ## License
 
 MIT. See [LICENSE](LICENSE) for details.
-
